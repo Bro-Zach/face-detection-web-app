@@ -1,0 +1,10 @@
+﻿<div class="carousel-item active">
+    <img src="@Item.ImageSource" class="d-block w-100" alt="...">
+    <div class="carousel-caption d-none d-md-block">
+        <h5>@Item.Label</h5>
+        <p>@Item.Description</p>
+    </div>
+</div>
+@code {
+    [Parameter] public CarouselItem Item{ get; set; }
+}

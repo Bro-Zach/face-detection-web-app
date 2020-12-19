@@ -1,100 +1,73 @@
 ﻿@page "/"
 
-@using OpenCvSharp
-@using OpenCvSharp.Face
-@using System.IO
-@using System.Threading;
-@using System.Threading.Tasks;
-
 <div class="card text-center">
     <div class="card-header">
-        Real-Time Face Datection Demo
+        <div class="row">
+            <InputFile OnChange="HandleFileChange" accept="image/*" />
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <p class="text-danger">@error</p>
+            }
+        </div>
     </div>
     <div class="card-body">
         <div class="row justify-content-center">
             <div class="col-8">
-                <img src="@videoSrc" />
+                <img src="@imgSrc" />
             </div>
         </div>
     </div>
     <div class="card-footer">
         <div class="row justify-content-center">
-            @if (cameraStarted)
-            {
-            <div class="col">
-                <button class="btn btn-outline-secondary" @onclick="StopCapture">Stop</button>
-            </div>
-            }
-            else
-            {
-            <button class="btn btn-outline-primary" @onclick="StartCapture">Start Camera</button>
-            }
         </div>
     </div>
 </div>
 
 
-@code{
-    string videoSrc;
-    bool cameraStarted = false;
-    CancellationTokenSource cancellationTokenSource;
-    Mat frame;
+@code {
+    List<string> images = new List<string>();
+    string imgSrc;
+    string error;
     CascadeClassifier haarCascade = new CascadeClassifier("wwwroot\\haarcascade_frontalface_alt.xml");
-    CascadeClassifier nestedHaarCascade = new CascadeClassifier("wwwroot\\haarcascade_eye_tree_eyeglasses.xml");
+    //CascadeClassifier haarCascade = new CascadeClassifier("wwwroot\\lbpcascade_frontalface_improved.xml");
 
-    async Task StartCapture()
+    async Task HandleFileChange(InputFileChangeEventArgs args)
     {
-        cancellationTokenSource = new CancellationTokenSource();
-        await Capture(cancellationTokenSource.Token);
-    }
-
-    void StopCapture()
-    {
-        cameraStarted = false;
-        if (cancellationTokenSource?.IsCancellationRequested ?? true) return;
-        cancellationTokenSource.Cancel();
-    }
-
-    async Task Capture(CancellationToken cancellationToken)
-    {
-        using var capture = new VideoCapture(0);
-        cameraStarted = true;
-
-        frame = new Mat();
-        while (true)
+        error = string.Empty;
+        var format = "image/png";
+        string contentType = args.File.ContentType;
+        if (contentType.StartsWith("image/"))
         {
-            if (cancellationToken.IsCancellationRequested)
-                break;
+            IBrowserFile imageFile = await args.File.RequestImageFileAsync(format, 500, 500);
 
-            capture.Read(frame);
-            if (frame.Empty())
-                break;
-            ProcessFrame();
-            videoSrc = $"data:image/gif;base64,{frame.ToBase64String()}";
-            await Task.Delay(1);
-            StateHasChanged();
+            var buffer = new byte[imageFile.Size];
+            await imageFile.OpenReadStream().ReadAsync(buffer);
+
+            Mat sourceImage = Mat.FromImageData(buffer);
+            Mat grayImage = new Mat();
+            Cv2.CvtColor(sourceImage, grayImage, ColorConversionCodes.BGRA2GRAY);
+            Cv2.EqualizeHist(grayImage, grayImage);
+
+            var faces = haarCascade.DetectMultiScale(
+           image: grayImage,
+           scaleFactor: 1.08,
+           minNeighbors: 2,
+           flags: HaarDetectionType.ScaleImage,
+           minSize: new Size(30, 30));
+
+            foreach (var face in faces)
+            {
+                Cv2.Rectangle(sourceImage, face, Scalar.Red, 2);
+            }
+
+            //imgSrc = $"data:{contentType};base64,{Convert.ToBase64String(buffer)}";
+            imgSrc = $"data:{contentType};base64,{sourceImage.ToBase64String()}";
         }
-    }
-
-
-    void ProcessFrame()
-    {
-        Mat grayImage = new Mat();
-        Cv2.CvtColor(frame, grayImage, ColorConversionCodes.BGRA2GRAY);
-        Cv2.EqualizeHist(grayImage, grayImage);
-
-        var faces = haarCascade.DetectMultiScale(
-            image: grayImage,
-            scaleFactor: 1.1,
-            minNeighbors: 3,
-            flags: HaarDetectionType.ScaleImage,
-            minSize: new Size(30, 30));
-
-        foreach (var face in faces)
+        else
         {
-            Cv2.Rectangle(frame, face, Scalar.Red, 2);
+            error = $"({args.File.Name}) is not a valid image file. ";
+            imgSrc = string.Empty;
         }
-
 
     }
 
