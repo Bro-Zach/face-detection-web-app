@@ -61,13 +61,25 @@
                 break;
 
             capture.Read(frame);
+            Mat frameCopy = new Mat();
+            frame.CopyTo(frameCopy);
             if (frame.Empty())
                 break;
-            ProcessFrame();
+            PrcessFrameWithDnn();
+            if (frame.Empty())
+            {
+                frameCopy.CopyTo(frame);
+            }
             videoSrc = $"data:image/gif;base64,{frame.ToBase64String()}";
             await Task.Delay(1);
             StateHasChanged();
         }
+    }
+
+    void PrcessFrameWithDnn()
+    {
+        frame = frame.DetectFaceWithOpenCvDNN();
+
     }
 
 

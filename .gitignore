@@ -348,3 +348,7 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+/src/FaceDetectionApp/OpenCvFaceDetectionApp/wwwroot/data/yolov3.weights
+/src/FaceDetectionApp/OpenCvFaceDetectionApp/wwwroot/data/yolov3.cfg
+/src/FaceDetectionApp/OpenCvFaceDetectionApp/wwwroot/data/yolov3-face.cfg
+/src/FaceDetectionApp/OpenCvFaceDetectionApp/wwwroot/data/coco.names

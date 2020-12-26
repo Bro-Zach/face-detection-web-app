@@ -1,4 +1,5 @@
 ﻿@page "/"
+@inherits IndexBase
 
 <div class="card text-center">
     <div class="card-header">
@@ -10,10 +11,19 @@
             }
         </div>
     </div>
-    <div class="card-body">
+    <div class="card-body text-white">
         <div class="row justify-content-center">
-            <div class="col-8">
-                <img src="@imgSrc" />
+            <div class="col-md-6">
+                <img src="@imgSrc"/>
+                <div class="card-img-overlay">
+                    <h5 class="card-title">OpenCv</h5>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <img src="@imgSrcDnn" />
+                <div class="card-img-overlay">
+                    <h6 class="card-title">OpenCv with DNN</h6>
+                </div>
             </div>
         </div>
     </div>
@@ -22,54 +32,3 @@
         </div>
     </div>
 </div>
-
-
-@code {
-    List<string> images = new List<string>();
-    string imgSrc;
-    string error;
-    CascadeClassifier haarCascade = new CascadeClassifier("wwwroot\\haarcascade_frontalface_alt.xml");
-    //CascadeClassifier haarCascade = new CascadeClassifier("wwwroot\\lbpcascade_frontalface_improved.xml");
-
-    async Task HandleFileChange(InputFileChangeEventArgs args)
-    {
-        error = string.Empty;
-        var format = "image/png";
-        string contentType = args.File.ContentType;
-        if (contentType.StartsWith("image/"))
-        {
-            IBrowserFile imageFile = await args.File.RequestImageFileAsync(format, 500, 500);
-
-            var buffer = new byte[imageFile.Size];
-            await imageFile.OpenReadStream().ReadAsync(buffer);
-
-            Mat sourceImage = Mat.FromImageData(buffer);
-            Mat grayImage = new Mat();
-            Cv2.CvtColor(sourceImage, grayImage, ColorConversionCodes.BGRA2GRAY);
-            Cv2.EqualizeHist(grayImage, grayImage);
-
-            var faces = haarCascade.DetectMultiScale(
-           image: grayImage,
-           scaleFactor: 1.08,
-           minNeighbors: 2,
-           flags: HaarDetectionType.ScaleImage,
-           minSize: new Size(30, 30));
-
-            foreach (var face in faces)
-            {
-                Cv2.Rectangle(sourceImage, face, Scalar.Red, 2);
-            }
-
-            //imgSrc = $"data:{contentType};base64,{Convert.ToBase64String(buffer)}";
-            imgSrc = $"data:{contentType};base64,{sourceImage.ToBase64String()}";
-        }
-        else
-        {
-            error = $"({args.File.Name}) is not a valid image file. ";
-            imgSrc = string.Empty;
-        }
-
-    }
-
-
-}
